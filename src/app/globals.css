@@ -1,0 +1,124 @@
+:root {
+  color-scheme: light dark;
+  --ink: #10201f;
+  --muted: #5c716f;
+  --rule: #dbe5e3;
+  --ground: #f7faf9;
+  --card: #ffffff;
+  --high: #0b6b8f;
+  --low: #8a5a1b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #e6eeec;
+    --muted: #8fa5a2;
+    --rule: #25332f;
+    --ground: #0d1413;
+    --card: #131c1a;
+    --high: #6fc6e8;
+    --low: #e0a95c;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 3rem 1.25rem;
+  background: var(--ground);
+  color: var(--ink);
+  font: 16px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+main {
+  max-width: 34rem;
+  margin: 0 auto;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  padding: 2rem;
+}
+
+.wordmark {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+h1 {
+  margin: 0.35rem 0 0;
+  font-size: 1.75rem;
+  letter-spacing: -0.02em;
+}
+
+.date {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+}
+
+.tides {
+  width: 100%;
+  margin: 1.75rem 0 0;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.tides th {
+  text-align: left;
+  padding: 0 0 0.6rem;
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.tides td {
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.tides tbody tr:last-child td { border-bottom: 0; }
+.tides .numeric { text-align: right; }
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+tr.high .badge { color: var(--high); }
+tr.low .badge { color: var(--low); }
+
+.error {
+  margin-top: 1.75rem;
+  padding: 1.25rem;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--low);
+  border-radius: 8px;
+  background: var(--ground);
+}
+
+.error h2 { margin: 0 0 0.4rem; font-size: 1rem; }
+.error p { margin: 0; color: var(--muted); }
+
+footer {
+  margin-top: 1.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+footer p { margin: 0; }
+footer a { color: inherit; }
