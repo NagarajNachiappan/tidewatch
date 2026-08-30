@@ -11,15 +11,22 @@ export interface MarineDay {
   swellPeriodS: number | null
   /** Compass bearing the swell arrives *from*. */
   swellDirectionDeg: number | null
+  /** Total significant wave height — what a swimmer actually meets. */
+  waveHeightM: number | null
+  seaTempC: number | null
 }
 
 /** Wind and air temperature. Per-beach, ~2.9 km resolution. */
 export interface WeatherDay {
   date: string
   airTempMaxC: number | null
+  airTempMinC: number | null
   windSpeedMaxKmh: number | null
   /** Compass bearing the wind blows *from*. */
   windDirectionDeg: number | null
+  /** Local ISO timestamps, e.g. "2026-08-29T06:25". Null when unavailable. */
+  sunrise: string | null
+  sunset: string | null
 }
 
 export class OpenMeteoError extends Error {
@@ -95,6 +102,15 @@ function column(location: unknown, key: string): (number | null)[] {
   return values.map((v) => (typeof v === 'number' && Number.isFinite(v) ? v : null))
 }
 
+/** Same as `column`, for daily fields that come back as strings rather than numbers. */
+function textColumn(location: unknown, key: string): (string | null)[] {
+  if (!location || typeof location !== 'object' || !('daily' in location)) return []
+  const daily = (location as { daily: Record<string, unknown> }).daily
+  const values = daily?.[key]
+  if (!Array.isArray(values)) return []
+  return values.map((v) => (typeof v === 'string' ? v : null))
+}
+
 function dates(location: unknown): string[] {
   if (!location || typeof location !== 'object' || !('daily' in location)) return []
   const daily = (location as { daily: Record<string, unknown> }).daily
@@ -110,7 +126,13 @@ export async function fetchMarine(
   const locations = await fetchAll(
     MARINE,
     beaches,
-    ['swell_wave_height_max', 'swell_wave_period_max', 'swell_wave_direction_dominant'],
+    [
+      'swell_wave_height_max',
+      'swell_wave_period_max',
+      'swell_wave_direction_dominant',
+      'wave_height_max',
+      'sea_surface_temperature_mean',
+    ],
     days,
   )
 
@@ -121,6 +143,8 @@ export async function fetchMarine(
     const height = column(location, 'swell_wave_height_max')
     const period = column(location, 'swell_wave_period_max')
     const direction = column(location, 'swell_wave_direction_dominant')
+    const wave = column(location, 'wave_height_max')
+    const seaTemp = column(location, 'sea_surface_temperature_mean')
     result.set(
       beach.slug,
       time.map((date, i) => ({
@@ -128,6 +152,8 @@ export async function fetchMarine(
         swellHeightM: height[i] ?? null,
         swellPeriodS: period[i] ?? null,
         swellDirectionDeg: direction[i] ?? null,
+        waveHeightM: wave[i] ?? null,
+        seaTempC: seaTemp[i] ?? null,
       })),
     )
   })
@@ -142,7 +168,14 @@ export async function fetchWeather(
   const locations = await fetchAll(
     FORECAST,
     beaches,
-    ['temperature_2m_max', 'wind_speed_10m_max', 'wind_direction_10m_dominant'],
+    [
+      'temperature_2m_max',
+      'temperature_2m_min',
+      'wind_speed_10m_max',
+      'wind_direction_10m_dominant',
+      'sunrise',
+      'sunset',
+    ],
     days,
   )
 
@@ -150,16 +183,23 @@ export async function fetchWeather(
   beaches.forEach((beach, index) => {
     const location = locations[index]
     const time = dates(location)
-    const temp = column(location, 'temperature_2m_max')
+    const tempMax = column(location, 'temperature_2m_max')
+    const tempMin = column(location, 'temperature_2m_min')
     const speed = column(location, 'wind_speed_10m_max')
     const direction = column(location, 'wind_direction_10m_dominant')
+    // sunrise/sunset are ISO strings, not numbers, so they need the text reader.
+    const sunrise = textColumn(location, 'sunrise')
+    const sunset = textColumn(location, 'sunset')
     result.set(
       beach.slug,
       time.map((date, i) => ({
         date,
-        airTempMaxC: temp[i] ?? null,
+        airTempMaxC: tempMax[i] ?? null,
+        airTempMinC: tempMin[i] ?? null,
         windSpeedMaxKmh: speed[i] ?? null,
         windDirectionDeg: direction[i] ?? null,
+        sunrise: sunrise[i] ?? null,
+        sunset: sunset[i] ?? null,
       })),
     )
   })

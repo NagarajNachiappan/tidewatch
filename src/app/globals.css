@@ -292,3 +292,83 @@ footer a { color: inherit; }
 
 .score-missing { display: flex; flex-direction: column; gap: 0.25rem; }
 .score-note { font-size: 0.8rem; color: var(--muted); }
+
+/* --- slice 5: the matrix --- */
+
+.matrix-wrap { margin-top: 1.5rem; }
+
+/* Wide content scrolls inside its own box rather than the page. */
+.matrix-scroll { overflow-x: auto; }
+
+.matrix {
+  width: 100%;
+  min-width: 22rem;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.matrix th {
+  padding: 0 0 0.55rem;
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: right;
+}
+
+.matrix .matrix-beach { text-align: left; }
+
+.matrix tbody th {
+  padding: 0.6rem 0.75rem 0.6rem 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.matrix .cell {
+  padding: 0.6rem 0 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.95rem;
+}
+
+.matrix .best {
+  position: relative;
+  font-weight: 600;
+  color: var(--high);
+}
+
+.matrix .best::after {
+  content: '';
+  position: absolute;
+  inset: 0.25rem -0.35rem;
+  border: 1px solid var(--high);
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+.best {
+  margin: 0.85rem 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.best strong { color: var(--ink); }
+
+/* per-beach score list */
+.scores { margin-top: 0.9rem; }
+
+.scores .score {
+  margin: 0 0 0.5rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--card);
+}
+
+.score-none { font-size: 1rem; color: var(--muted); }

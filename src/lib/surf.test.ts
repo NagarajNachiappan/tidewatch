@@ -9,14 +9,19 @@ const marine = (directionDeg: number): MarineDay => ({
   swellHeightM: 1.2,
   swellPeriodS: 12,
   swellDirectionDeg: directionDeg,
+  waveHeightM: 1.3,
+  seaTempC: 21,
 })
 
 /** Identical weather for both beaches, so only the static profile can move the score. */
 const calm: WeatherDay = {
   date: '2026-08-29',
   airTempMaxC: 24,
+  airTempMinC: 17,
   windSpeedMaxKmh: 6,
   windDirectionDeg: 250,
+  sunrise: '2026-08-29T06:25',
+  sunset: '2026-08-29T19:23',
 }
 
 describe('acceptance criterion 4 — the profile actually differentiates beaches', () => {
@@ -84,6 +89,8 @@ describe('missing data', () => {
       swellHeightM: null,
       swellPeriodS: null,
       swellDirectionDeg: null,
+      waveHeightM: null,
+      seaTempC: null,
     }
     assert.equal(scoreSurf(blank, calm, PROFILES.hermosa), null)
   })

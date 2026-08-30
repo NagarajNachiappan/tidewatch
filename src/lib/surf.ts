@@ -1,5 +1,6 @@
 import { angularDistance, shelterFor, type BeachProfile, type ShelteredSector } from './profiles.ts'
 import type { MarineDay, WeatherDay } from './openmeteo'
+import { clamp, ramp } from './curves.ts'
 
 /**
  * Surf score, 0-100.
@@ -32,14 +33,6 @@ const WEIGHTS = { size: 0.35, period: 0.3, direction: 0.2, wind: 0.15 } as const
 /** How much energy still reaches a beach through a blocking headland, by refraction. */
 const SHELTERED_THROUGHPUT = 0.15
 
-const clamp = (n: number, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, n))
-
-/** Linear interpolation between two points, clamped outside the range. */
-function ramp(x: number, x0: number, x1: number, y0: number, y1: number): number {
-  if (x <= x0) return y0
-  if (x >= x1) return y1
-  return y0 + ((x - x0) / (x1 - x0)) * (y1 - y0)
-}
 
 /** Too small is useless, too big is unrideable for most; the middle is the point. */
 export function sizeScore(heightM: number): number {

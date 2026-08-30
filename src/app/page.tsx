@@ -2,12 +2,13 @@ import { BEACHES, REGIONS, sharesStation, uniqueStations } from '@/lib/beaches'
 import { DATUM, fetchTideDays, NoaaError } from '@/lib/noaa'
 import { fetchMarine, fetchWeather } from '@/lib/openmeteo'
 import { PROFILES } from '@/lib/profiles'
-import { scoreSurf } from '@/lib/surf'
+import { bestOfDay, scoreActivities, type ActivityScore } from '@/lib/activities'
 import { datesFrom, resolveSelectedDate, todayIn } from '@/lib/dates'
 import { formatLongDate } from '@/lib/format'
 import type { TideDay } from '@/lib/types'
 import { BeachCard } from './BeachCard'
 import { DayStrip } from './DayStrip'
+import { Matrix, type MatrixRow } from './Matrix'
 
 const FORECAST_DAYS = 7
 
@@ -67,6 +68,25 @@ export default async function Page({
   const available = datesFrom(todayIn(), FORECAST_DAYS)
   const selected = resolveSelectedDate(requested, available)
 
+  // Score every beach once, then use the same results for the matrix and the cards.
+  const rows: MatrixRow[] = BEACHES.map((beach) => {
+    const result = byStation.get(beach.stationId)
+    const day = result ? (result.days.get(selected) ?? null) : null
+    return {
+      slug: beach.slug,
+      beachName: beach.name,
+      region: beach.region,
+      scores: scoreActivities(
+        marine.value?.get(beach.slug)?.find((entry) => entry.date === selected),
+        weather.value?.get(beach.slug)?.find((entry) => entry.date === selected),
+        day,
+        PROFILES[beach.slug],
+      ),
+    }
+  })
+  const scoresBySlug = new Map<string, ActivityScore[]>(rows.map((row) => [row.slug, row.scores]))
+  const best = bestOfDay(rows)
+
   return (
     <main>
       <header className="page-head">
@@ -76,6 +96,8 @@ export default async function Page({
       </header>
 
       <DayStrip days={available} selected={selected} />
+
+      <Matrix rows={rows} best={best} />
 
       {REGIONS.map((region) => {
         const beaches = BEACHES.filter((beach) => beach.region === region)
@@ -91,13 +113,6 @@ export default async function Page({
                   ? (result.error ?? (day ? null : 'No predictions for this day.'))
                   : 'No data for this station.'
 
-                const marineDay = marine.value
-                  ?.get(beach.slug)
-                  ?.find((entry) => entry.date === selected)
-                const weatherDay = weather.value
-                  ?.get(beach.slug)
-                  ?.find((entry) => entry.date === selected)
-
                 return (
                   <BeachCard
                     key={beach.slug}
@@ -105,8 +120,7 @@ export default async function Page({
                     day={day}
                     error={error}
                     shared={sharesStation(beach)}
-                    score={scoreSurf(marineDay, weatherDay, PROFILES[beach.slug])}
-                    scoreError={marine.error}
+                    scores={scoresBySlug.get(beach.slug) ?? []}
                   />
                 )
               })}

@@ -1,8 +1,8 @@
 import type { Beach } from '@/lib/beaches'
 import type { TideDay } from '@/lib/types'
-import type { SurfScore as Score } from '@/lib/surf'
+import type { ActivityScore } from '@/lib/activities'
 import { TideTable } from './TideTable'
-import { SurfScore } from './SurfScore'
+import { ScoreList } from './ScoreList'
 
 interface Props {
   beach: Beach
@@ -10,11 +10,10 @@ interface Props {
   error: string | null
   /** Another beach draws on the same station, so identical tide numbers are expected. */
   shared: boolean
-  score: Score | null
-  scoreError: string | null
+  scores: ActivityScore[]
 }
 
-export function BeachCard({ beach, day, error, shared, score, scoreError }: Props) {
+export function BeachCard({ beach, day, error, shared, scores }: Props) {
   return (
     <article className="beach">
       <header className="beach-head">
@@ -25,7 +24,7 @@ export function BeachCard({ beach, day, error, shared, score, scoreError }: Prop
         </p>
       </header>
 
-      <SurfScore score={score} error={scoreError} />
+      <ScoreList scores={scores} />
 
       {error ? (
         <p className="beach-error" role="alert">
