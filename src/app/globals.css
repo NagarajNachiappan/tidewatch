@@ -232,3 +232,63 @@ footer a { color: inherit; }
 @media (max-width: 34rem) {
   .daystrip { grid-template-columns: repeat(4, 1fr); }
 }
+
+/* --- slice 4: surf score --- */
+
+.score {
+  margin: 0.9rem 0 0;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--card);
+}
+
+.score-top {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.score-label {
+  flex: 1;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.score-value {
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--high);
+}
+
+.score-max { font-size: 0.75rem; color: var(--muted); }
+
+.score-why {
+  margin: 0.45rem 0 0;
+  font-size: 0.8rem;
+  color: var(--ink);
+}
+
+.score-shelter {
+  margin: 0.35rem 0 0;
+  padding-left: 0.55rem;
+  border-left: 2px solid var(--low);
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.provenance {
+  margin: 0.5rem 0 0;
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+.provenance span { border-bottom: 1px dotted var(--rule); cursor: help; }
+
+.score-missing { display: flex; flex-direction: column; gap: 0.25rem; }
+.score-note { font-size: 0.8rem; color: var(--muted); }

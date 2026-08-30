@@ -1,5 +1,8 @@
 import { BEACHES, REGIONS, sharesStation, uniqueStations } from '@/lib/beaches'
 import { DATUM, fetchTideDays, NoaaError } from '@/lib/noaa'
+import { fetchMarine, fetchWeather } from '@/lib/openmeteo'
+import { PROFILES } from '@/lib/profiles'
+import { scoreSurf } from '@/lib/surf'
 import { datesFrom, resolveSelectedDate, todayIn } from '@/lib/dates'
 import { formatLongDate } from '@/lib/format'
 import type { TideDay } from '@/lib/types'
@@ -9,9 +12,20 @@ import { DayStrip } from './DayStrip'
 const FORECAST_DAYS = 7
 
 interface StationResult {
-  /** One entry per calendar day, keyed by date. */
   days: Map<string, TideDay>
   error: string | null
+}
+
+/** Capture a rejection as a message instead of letting it take the whole page down. */
+async function settle<T>(promise: Promise<T>): Promise<{ value: T | null; error: string | null }> {
+  try {
+    return { value: await promise, error: null }
+  } catch (reason) {
+    return {
+      value: null,
+      error: reason instanceof Error ? reason.message : 'An unexpected error occurred.',
+    }
+  }
 }
 
 export default async function Page({
@@ -20,17 +34,22 @@ export default async function Page({
   searchParams: Promise<{ date?: string }>
 }) {
   const { date: requested } = await searchParams
-
-  // Three stations for four beaches, one request each covering the whole range —
-  // seven days must not become 21 requests.
   const stations = uniqueStations()
-  const settled = await Promise.allSettled(
-    stations.map((station) => fetchTideDays(station.id, station.name, FORECAST_DAYS)),
-  )
+
+  // Five upstream requests, all in flight together: three NOAA stations, plus one
+  // multi-coordinate call to each Open-Meteo API covering all four beaches at once.
+  // Each source fails independently — a dead marine call must not blank the tide tables.
+  const [stationSettled, marine, weather] = await Promise.all([
+    Promise.allSettled(
+      stations.map((station) => fetchTideDays(station.id, station.name, FORECAST_DAYS)),
+    ),
+    settle(fetchMarine(BEACHES, FORECAST_DAYS)),
+    settle(fetchWeather(BEACHES, FORECAST_DAYS)),
+  ])
 
   const byStation = new Map<string, StationResult>()
   stations.forEach((station, index) => {
-    const outcome = settled[index]
+    const outcome = stationSettled[index]
     byStation.set(
       station.id,
       outcome.status === 'fulfilled'
@@ -53,7 +72,7 @@ export default async function Page({
       <header className="page-head">
         <p className="wordmark">Tidewatch</p>
         <h1>{formatLongDate(selected)}</h1>
-        <p className="date">Tides for four Southern California beaches</p>
+        <p className="date">Surf conditions and tides for four Southern California beaches</p>
       </header>
 
       <DayStrip days={available} selected={selected} />
@@ -68,11 +87,17 @@ export default async function Page({
               {beaches.map((beach) => {
                 const result = byStation.get(beach.stationId)
                 const day = result ? (result.days.get(selected) ?? null) : null
-                // A station that answered but has no rows for this day is a gap in the
-                // forecast, not a failure — say so rather than showing an empty table.
                 const error = result
                   ? (result.error ?? (day ? null : 'No predictions for this day.'))
                   : 'No data for this station.'
+
+                const marineDay = marine.value
+                  ?.get(beach.slug)
+                  ?.find((entry) => entry.date === selected)
+                const weatherDay = weather.value
+                  ?.get(beach.slug)
+                  ?.find((entry) => entry.date === selected)
+
                 return (
                   <BeachCard
                     key={beach.slug}
@@ -80,6 +105,8 @@ export default async function Page({
                     day={day}
                     error={error}
                     shared={sharesStation(beach)}
+                    score={scoreSurf(marineDay, weatherDay, PROFILES[beach.slug])}
+                    scoreError={marine.error}
                   />
                 )
               })}
@@ -90,11 +117,15 @@ export default async function Page({
 
       <footer>
         <p>
-          Tide predictions from{' '}
+          Tides from{' '}
           <a href="https://tidesandcurrents.noaa.gov/" rel="noreferrer">
             NOAA CO-OPS
           </a>{' '}
-          · heights above {DATUM} · beaches without their own station borrow the nearest one
+          (heights above {DATUM}) · swell and wind from{' '}
+          <a href="https://open-meteo.com/" rel="noreferrer">
+            Open-Meteo
+          </a>{' '}
+          · surf scores are uncalibrated estimates, not verified forecasts
         </p>
       </footer>
     </main>

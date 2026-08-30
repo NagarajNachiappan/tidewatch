@@ -187,8 +187,17 @@ grid cell (32.875, -117.29166), 17 cells south, so its wave data genuinely diffe
 will therefore show **three byte-identical columns and one that moves** — which reads as a bug
 to anyone looking closely, and is in fact an accurate depiction of the data available.
 
-Until one of the three options is chosen, the UI must not imply the South Bay beaches were
-measured separately. Does not block slice 1; must be resolved before scoring is built.
+**RESOLVED 2026-08-29 — see [`004-conditions-and-surf-score.md`](004-conditions-and-surf-score.md).**
+Option 1 chosen: one shared regional swell input plus per-beach static modifiers.
+
+Specifying it also narrowed the problem. OQ-1 assumed all Open-Meteo data collapses across
+the South Bay; only the **marine** data does. The standard forecast API runs on a ~2.9 km
+grid — three times finer — and puts the three beaches on **three distinct grid points**
+(33.8930 / 33.8668 / 33.8406), returning different air temperatures and wind speeds for each.
+
+So wind- and temperature-driven scores are measured per beach; only wave-driven scores are
+modelled. The matrix will be differentiated wherever the data supports it, and modelled only
+where it does not. The UI must still mark which is which.
 
 **OQ-2 — Which station serves which beach? (Low — measured and largely moot)**
 
