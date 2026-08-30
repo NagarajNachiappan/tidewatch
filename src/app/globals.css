@@ -32,7 +32,7 @@ body {
 }
 
 main {
-  max-width: 34rem;
+  max-width: 46rem;
   margin: 0 auto;
   background: var(--card);
   border: 1px solid var(--rule);
@@ -122,3 +122,68 @@ footer {
 
 footer p { margin: 0; }
 footer a { color: inherit; }
+
+
+/* --- slice 2: multiple beaches --- */
+
+.page-head { margin-bottom: 2rem; }
+
+.region { margin-top: 2rem; }
+
+.region-name {
+  margin: 0 0 0.9rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.beaches {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+}
+
+.beach {
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 1.1rem 1.2rem 0.6rem;
+  background: var(--ground);
+}
+
+.beach-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+}
+
+.source {
+  margin: 0.2rem 0 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.shared-tag {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  font-size: 0.65rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.beach .tides { margin-top: 1rem; font-size: 0.92rem; }
+.beach .tides td { padding: 0.6rem 0; }
+
+.beach-error {
+  margin: 1rem 0;
+  padding: 0.7rem 0.8rem;
+  border-left: 3px solid var(--low);
+  border-radius: 4px;
+  background: var(--card);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
