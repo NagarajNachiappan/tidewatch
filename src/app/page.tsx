@@ -1,20 +1,31 @@
 import { BEACHES, REGIONS, sharesStation, uniqueStations } from '@/lib/beaches'
-import { DATUM, fetchTideDay, NoaaError } from '@/lib/noaa'
+import { DATUM, fetchTideDays, NoaaError } from '@/lib/noaa'
+import { datesFrom, resolveSelectedDate, todayIn } from '@/lib/dates'
 import { formatLongDate } from '@/lib/format'
 import type { TideDay } from '@/lib/types'
 import { BeachCard } from './BeachCard'
+import { DayStrip } from './DayStrip'
+
+const FORECAST_DAYS = 7
 
 interface StationResult {
-  day: TideDay | null
+  /** One entry per calendar day, keyed by date. */
+  days: Map<string, TideDay>
   error: string | null
 }
 
-export default async function Page() {
-  // Three stations for four beaches — Manhattan and Hermosa share Santa Monica.
-  // Fetch each station once, and let one failing station cost only its own beaches.
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string }>
+}) {
+  const { date: requested } = await searchParams
+
+  // Three stations for four beaches, one request each covering the whole range —
+  // seven days must not become 21 requests.
   const stations = uniqueStations()
   const settled = await Promise.allSettled(
-    stations.map((station) => fetchTideDay(station.id, station.name)),
+    stations.map((station) => fetchTideDays(station.id, station.name, FORECAST_DAYS)),
   )
 
   const byStation = new Map<string, StationResult>()
@@ -23,9 +34,9 @@ export default async function Page() {
     byStation.set(
       station.id,
       outcome.status === 'fulfilled'
-        ? { day: outcome.value, error: null }
+        ? { days: new Map(outcome.value.map((day) => [day.date, day])), error: null }
         : {
-            day: null,
+            days: new Map(),
             error:
               outcome.reason instanceof NoaaError
                 ? outcome.reason.message
@@ -34,16 +45,18 @@ export default async function Page() {
     )
   })
 
-  // Any station that answered can date the page; they are all the same local day.
-  const date = [...byStation.values()].find((r) => r.day)?.day?.date ?? null
+  const available = datesFrom(todayIn(), FORECAST_DAYS)
+  const selected = resolveSelectedDate(requested, available)
 
   return (
     <main>
       <header className="page-head">
         <p className="wordmark">Tidewatch</p>
-        <h1>Today&rsquo;s tides</h1>
-        {date ? <p className="date">{formatLongDate(date)}</p> : null}
+        <h1>{formatLongDate(selected)}</h1>
+        <p className="date">Tides for four Southern California beaches</p>
       </header>
+
+      <DayStrip days={available} selected={selected} />
 
       {REGIONS.map((region) => {
         const beaches = BEACHES.filter((beach) => beach.region === region)
@@ -53,15 +66,19 @@ export default async function Page() {
             <h2 className="region-name">{region}</h2>
             <div className="beaches">
               {beaches.map((beach) => {
-                // `?? fallback` would be wrong here: a successful result has
-                // error === null, and null ?? '...' would resurrect the fallback.
                 const result = byStation.get(beach.stationId)
+                const day = result ? (result.days.get(selected) ?? null) : null
+                // A station that answered but has no rows for this day is a gap in the
+                // forecast, not a failure — say so rather than showing an empty table.
+                const error = result
+                  ? (result.error ?? (day ? null : 'No predictions for this day.'))
+                  : 'No data for this station.'
                 return (
                   <BeachCard
                     key={beach.slug}
                     beach={beach}
-                    day={result ? result.day : null}
-                    error={result ? result.error : 'No data for this station.'}
+                    day={day}
+                    error={error}
                     shared={sharesStation(beach)}
                   />
                 )

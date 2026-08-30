@@ -1,4 +1,5 @@
 import type { Tide, TideDay } from './types'
+import { toNoaaDate, todayIn } from './dates'
 
 const ENDPOINT = 'https://api.tidesandcurrents.noaa.gov/api/prod/datagetter'
 
@@ -36,14 +37,22 @@ export class NoaaError extends Error {
 
 const TIMESTAMP = /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})$/
 
-/** Fetch today's high and low waters for one station, in the station's local time. */
-export async function fetchTideDay(
+/**
+ * Fetch high and low waters for one station over `days` consecutive days, starting today.
+ *
+ * One request covers the whole range: `date=today` silently ignores `range` and returns a
+ * single day, so an explicit `begin_date` is required — which is why the start date has to
+ * be computed in the station's zone rather than the server's.
+ */
+export async function fetchTideDays(
   stationId: string,
   stationName: string,
-): Promise<TideDay> {
+  days: number,
+): Promise<TideDay[]> {
   const url = new URL(ENDPOINT)
   url.search = new URLSearchParams({
-    date: 'today',
+    begin_date: toNoaaDate(todayIn()),
+    range: String(days * 24),
     station: stationId,
     product: 'predictions',
     datum: DATUM,
@@ -97,16 +106,33 @@ export async function fetchTideDay(
 
   const rows = body.predictions
   if (!rows || rows.length === 0) {
-    throw new NoaaError(`NOAA returned no predictions for station ${stationId} today.`)
+    throw new NoaaError(`NOAA returned no predictions for station ${stationId}.`)
   }
 
-  return {
+  return groupByDay(rows, stationId, stationName)
+}
+
+/** NOAA returns a flat list spanning the range; the UI wants one entry per calendar day. */
+function groupByDay(
+  rows: NoaaPrediction[],
+  stationId: string,
+  stationName: string,
+): TideDay[] {
+  const days = new Map<string, Tide[]>()
+  for (const row of rows) {
+    const { date, tide } = parseRow(row)
+    const existing = days.get(date)
+    if (existing) existing.push(tide)
+    else days.set(date, [tide])
+  }
+
+  return [...days.entries()].map(([date, tides]) => ({
     stationId,
     stationName,
-    date: dateOf(rows[0]),
+    date,
     datum: DATUM,
-    tides: rows.map(toTide),
-  }
+    tides,
+  }))
 }
 
 /** Collapse a plain-text error body into something short enough to display. */
@@ -116,7 +142,7 @@ function summarise(raw: string): string {
   return text.length > 200 ? `${text.slice(0, 199)}\u2026` : text
 }
 
-function toTide(row: NoaaPrediction): Tide {
+function parseRow(row: NoaaPrediction): { date: string; tide: Tide } {
   const match = TIMESTAMP.exec(row.t)
   if (!match) {
     throw new NoaaError(`Unrecognised timestamp from NOAA: ${JSON.stringify(row.t)}`)
@@ -127,20 +153,11 @@ function toTide(row: NoaaPrediction): Tide {
     throw new NoaaError(`Unparseable tide height from NOAA: ${JSON.stringify(row.v)}`)
   }
 
-  return { time: match[2], type: kindOf(row.type), feet }
+  return { date: match[1], tide: { time: match[2], type: kindOf(row.type), feet } }
 }
 
 function kindOf(raw: string): Tide['type'] {
   if (raw === 'H') return 'high'
   if (raw === 'L') return 'low'
   throw new NoaaError(`Unrecognised tide type from NOAA: ${JSON.stringify(raw)}`)
-}
-
-/** The day the table is for, taken from the data rather than from a server clock. */
-function dateOf(row: NoaaPrediction): string {
-  const match = TIMESTAMP.exec(row.t)
-  if (!match) {
-    throw new NoaaError(`Unrecognised timestamp from NOAA: ${JSON.stringify(row.t)}`)
-  }
-  return match[1]
 }
