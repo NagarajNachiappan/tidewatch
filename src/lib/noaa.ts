@@ -7,6 +7,13 @@ const ENDPOINT = 'https://api.tidesandcurrents.noaa.gov/api/prod/datagetter'
 export const DATUM = 'MLLW'
 
 /**
+ * Predictions for a given date are deterministic and never change, so this could be
+ * indefinite. A day is used because the request URL rolls over daily anyway, and an
+ * unbounded TTL would keep dead entries for stations that are later removed.
+ */
+const PREDICTIONS_TTL_SECONDS = 86_400
+
+/**
  * Shape of what NOAA actually sends. Note `v` is a *string*.
  *
  * Errors are messier than the docs suggest. Measured 2026-08-29:
@@ -66,9 +73,10 @@ export async function fetchTideDays(
 
   let response: Response
   try {
-    // No caching yet — see OQ-4 in intent/001-tide-fetch.md. A public app must
-    // not hit NOAA once per visitor, but that policy is a deliberate later choice.
-    response = await fetch(url, { cache: 'no-store' })
+    // Tide predictions are computed from harmonic constants, not observed, so the answer
+    // for a given station and begin_date never changes. The URL carries begin_date, so it
+    // rolls over on its own at midnight and a day's table is fetched at most once.
+    response = await fetch(url, { next: { revalidate: PREDICTIONS_TTL_SECONDS } })
   } catch (cause) {
     throw new NoaaError('Could not reach NOAA. Check the network connection.', { cause })
   }

@@ -4,6 +4,9 @@ const MARINE = 'https://marine-api.open-meteo.com/v1/marine'
 const FORECAST = 'https://api.open-meteo.com/v1/forecast'
 const TIME_ZONE = 'America/Los_Angeles'
 
+/** Open-Meteo's models refresh about once an hour. */
+const FORECAST_TTL_SECONDS = 3_600
+
 /** Swell as reported for the beach's marine grid cell. Regional, ~9.2 km resolution. */
 export interface MarineDay {
   date: string
@@ -57,7 +60,9 @@ async function fetchAll(
 
   let response: Response
   try {
-    response = await fetch(url, { cache: 'no-store' })
+    // Open-Meteo re-runs its models roughly hourly, so anything shorter than this is
+    // spending requests on data that has not changed.
+    response = await fetch(url, { next: { revalidate: FORECAST_TTL_SECONDS } })
   } catch (cause) {
     throw new OpenMeteoError('Could not reach Open-Meteo. Check the network connection.', {
       cause,
